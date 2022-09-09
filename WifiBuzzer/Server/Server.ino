@@ -10,7 +10,6 @@
   copies or substantial portions of the Software.
 */
 
-
 // Import required libraries
 #include "WiFi.h"
 #include "ESPAsyncWebServer.h"
@@ -23,11 +22,14 @@
 const char* ssid = "ESP32-Access-Point";
 const char* password = "12345678910";
 
+const int redTimer = 2000;
+const int greenTimer = 10000;
 
 bool buzzPressed = false;
 unsigned long startTime;
 bool waitForResponse;
 String httpRequest;
+
 
 AsyncWebServer server(80);
 
@@ -41,15 +43,9 @@ String readBuzz() {
   }
 }
 
-String isResponse(AsyncWebServerRequest *request) {
-    int paramsNr = request->params(); // number of params (e.g., 1)
-    Serial.println(paramsNr);
-    Serial.println();
-    
-    AsyncWebParameter * j = request->getParam(0); // 1st parameter
-    Serial.print("Size: ");
-    Serial.print(j->value());                     // value ^
-    Serial.println();
+void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
+  Serial.print("onUpload: ");
+  Serial.println(len);
 }
 
 void setup(){
@@ -78,10 +74,9 @@ void setup(){
   server.on("/buzz", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/plain", readBuzz().c_str());
   });
-//  server.on("/response", HTTP_POST, [](AsyncWebServerRequest *request){
-//    isResponse(request);
-//    request->send(200);
-//  });
+  server.on("/response", HTTP_POST, [](AsyncWebServerRequest *request){
+    request->send(200);
+  }, onUpload);
     
   // Start server
   server.begin();
@@ -92,11 +87,23 @@ void loop(){
   if (digitalRead(BUTTON_PIN) == LOW) {
     buzzPressed = true;
     waitForResponse = true;
-    digitalWrite(REDLIGHT_PIN, HIGH);
+    highPin(REDLIGHT_PIN);
     startTime = millis();
   }
 
-  if (millis() - startTime >= 5000) {
-    digitalWrite(REDLIGHT_PIN, LOW);
+  if (millis() - startTime >= redTimer) {
+    lowPin(REDLIGHT_PIN);
   }
+}
+
+void togglePin(int port) {
+  digitalWrite(port, !digitalRead(port));
+}
+
+void lowPin(int port) {
+  digitalWrite(port, LOW);
+}
+
+void highPin(int port) {
+  digitalWrite(port, HIGH);
 }
