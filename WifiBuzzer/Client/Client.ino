@@ -17,28 +17,36 @@
 #define LED_PIN 22
 #define BEEP_PIN 16
 
-const char* server = "http://192.168.4.1";
 const char* ssid = "ESP32-Access-Point";
 const char* password = "12345678910";
 
-
 //Your IP address or domain name with URL path
-const char* serverNameBuzz = server + "/buzz";
-const char* serverNameResponse = server + "/response";
-
+const char* serverNameBuzz = "http://192.168.4.1/buzz";
+const char* serverNameResponse = "http://192.168.4.1/response";
 
 String buzz;
 bool doBuzz = false;
 bool isResponded = false;
 
 unsigned long previousMillis = 0;
+unsigned long pinMillis = 0;
 const long interval = 1000; 
+
+void togglePin(int port) {
+  digitalWrite(port, !digitalRead(port));
+}
+
+void lowPin(int port) {
+  digitalWrite(port, LOW);
+}
 
 void setup() {
   Serial.begin(115200);
 
   pinMode(LED_PIN, OUTPUT);
   pinMode(BEEP_PIN, OUTPUT);
+  lowPin(LED_PIN);
+  lowPin(BEEP_PIN);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   
   WiFi.begin(ssid, password);
@@ -67,16 +75,16 @@ void loop() {
       if(digitalRead(BUTTON_PIN) == LOW) {
         doBuzz = false;
         isResponded = true;
+        lowPin(LED_PIN);
+        lowPin(BEEP_PIN);
       }
 
 
-      if(doBuzz) {
-        digitalWrite(LED_PIN, HIGH); // Set GPIO22 active high
-        digitalWrite(BEEP_PIN, HIGH);
-        delay(1000);  // delay of one second
-        digitalWrite(LED_PIN, LOW); // Set GPIO22 active low
-        digitalWrite(BEEP_PIN, LOW);
-        //delay(1000); // delay of one second
+      if(doBuzz && currentMillis - pinMillis >= interval) {
+        togglePin(LED_PIN);
+        togglePin(BEEP_PIN);
+
+        pinMillis = currentMillis;
       }
       // save the last HTTP GET Request
       previousMillis = currentMillis;
@@ -85,7 +93,6 @@ void loop() {
         //String post = httpPOSTRequest(serverNameResponse);
         isResponded = false;
       }
-      
     }
     else {
       Serial.println("WiFi Disconnected");
