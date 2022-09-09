@@ -1,5 +1,7 @@
 /*
-  Thomas Transeth
+  Author Thomas Transeth
+  Code not optimized for low power use
+  
   Based on code by Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp32-client-server-wi-fi/
   
@@ -71,21 +73,7 @@ void loop() {
       if (buzz == "0") {
         doBuzz = true;
       }
-
-      if(digitalRead(BUTTON_PIN) == LOW) {
-        doBuzz = false;
-        isResponded = true;
-        lowPin(LED_PIN);
-        lowPin(BEEP_PIN);
-      }
-
-
-      if(doBuzz && currentMillis - pinMillis >= interval) {
-        togglePin(LED_PIN);
-        togglePin(BEEP_PIN);
-
-        pinMillis = currentMillis;
-      }
+      
       // save the last HTTP GET Request
       previousMillis = currentMillis;
 
@@ -97,6 +85,20 @@ void loop() {
     else {
       Serial.println("WiFi Disconnected");
     }
+  }
+
+  if(digitalRead(BUTTON_PIN) == LOW) {
+    doBuzz = false;
+    isResponded = true;
+    lowPin(LED_PIN);
+    lowPin(BEEP_PIN);
+  }
+
+  if(doBuzz && currentMillis - pinMillis >= interval) {
+    togglePin(LED_PIN);
+     togglePin(BEEP_PIN);
+
+  pinMillis = currentMillis;
   }
 }
 
