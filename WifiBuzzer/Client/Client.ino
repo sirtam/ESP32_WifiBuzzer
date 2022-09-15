@@ -41,16 +41,8 @@ void togglePin(int port) {
 void lowPin(int port) {
   digitalWrite(port, LOW);
 }
+void connectToWifi() {
 
-void setup() {
-  Serial.begin(115200);
-
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(BEEP_PIN, OUTPUT);
-  lowPin(LED_PIN);
-  lowPin(BEEP_PIN);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  
   WiFi.begin(ssid, password);
   Serial.println("Connecting");
   while(WiFi.status() != WL_CONNECTED) { 
@@ -60,46 +52,7 @@ void setup() {
   Serial.println("");
   Serial.print("Connected to WiFi network with IP Address: ");
   Serial.println(WiFi.localIP());
-}
-
-void loop() {
-  unsigned long currentMillis = millis();
   
-  if(currentMillis - previousMillis >= interval) {
-     // Check WiFi connection status
-    if(WiFi.status()== WL_CONNECTED ){ 
-      
-      buzz = httpGETRequest(serverNameBuzz);
-      if (buzz == "0") {
-        doBuzz = true;
-      }
-      
-      // save the last HTTP GET Request
-      previousMillis = currentMillis;
-
-      if(isResponded) {
-        //String post = httpPOSTRequest(serverNameResponse);
-        isResponded = false;
-      }
-    }
-    else {
-      Serial.println("WiFi Disconnected");
-    }
-  }
-
-  if(digitalRead(BUTTON_PIN) == LOW) {
-    doBuzz = false;
-    isResponded = true;
-    lowPin(LED_PIN);
-    lowPin(BEEP_PIN);
-  }
-
-  if(doBuzz && currentMillis - pinMillis >= interval) {
-    togglePin(LED_PIN);
-     togglePin(BEEP_PIN);
-
-  pinMillis = currentMillis;
-  }
 }
 
 String httpGETRequest(const char* serverName) {
@@ -131,17 +84,82 @@ String httpGETRequest(const char* serverName) {
 }
 
 String httpPOSTRequest(const char* serverName) {
-  
+ 
   WiFiClient client;
   HTTPClient http;
     
   http.begin(client, serverName);
   
-  http.addHeader("Content-Type", "text/plain");
-  int httpResponseCode = http.POST("1");
-
-  String payload = http.getString();
-  http.end();
+  //http.addHeader("Content-Type", "text/plain");
+  //int httpResponseCode = http.POST("1");
+  int httpResponseCode = http.GET();
+     String payload = "--"; 
   
+  if (httpResponseCode>0) {
+    //Serial.print("HTTP Response code: ");
+    //Serial.println(httpResponseCode);
+    
+    payload = http.getString();
+  }
+  else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
   return payload;
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BEEP_PIN, OUTPUT);
+  lowPin(LED_PIN);
+  lowPin(BEEP_PIN);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  connectToWifi();
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  
+  if(currentMillis - previousMillis >= interval) {
+     // Check WiFi connection status
+    if(WiFi.status()== WL_CONNECTED ){ 
+      
+      buzz = httpGETRequest(serverNameBuzz);
+      if (buzz == "0") {
+        doBuzz = true;
+      }
+      
+      // save the last HTTP GET Request
+      previousMillis = currentMillis;
+
+      if(isResponded) {
+        String post = httpPOSTRequest(serverNameResponse);
+        isResponded = false;
+      }
+    }
+    else {
+      Serial.println("WiFi Disconnected");
+      connectToWifi();
+    }
+  }
+
+  if(digitalRead(BUTTON_PIN) == LOW) {
+    doBuzz = false;
+    isResponded = true;
+    lowPin(LED_PIN);
+    lowPin(BEEP_PIN);
+  }
+
+  if(doBuzz && currentMillis - pinMillis >= interval) {
+    togglePin(LED_PIN);
+    togglePin(BEEP_PIN);  
+    pinMillis = currentMillis;
+  }
+  
 }

@@ -1,5 +1,7 @@
 /*
-  Thomas Transeth
+  Author Thomas Transeth
+  Code not optimized for low power use
+  
   Based on code by Rui Santos
   Complete project details at https://RandomNerdTutorials.com/esp32-client-server-wi-fi/
   
@@ -27,7 +29,6 @@ const int greenTimer = 10000;
 
 bool buzzPressed = false;
 unsigned long startTime;
-bool waitForResponse;
 String httpRequest;
 
 
@@ -43,9 +44,9 @@ String readBuzz() {
   }
 }
 
-void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final){
-  Serial.print("onUpload: ");
-  Serial.println(len);
+String onAnswer(){
+  highPin(GREENLIGHT_PIN);
+  return "Ok";
 }
 
 void setup(){
@@ -54,8 +55,6 @@ void setup(){
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(REDLIGHT_PIN, OUTPUT);
   pinMode(GREENLIGHT_PIN, OUTPUT);
-
-  waitForResponse = false;
   
   Serial.begin(115200);
   Serial.println();
@@ -74,10 +73,10 @@ void setup(){
   server.on("/buzz", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/plain", readBuzz().c_str());
   });
-  server.on("/response", HTTP_POST, [](AsyncWebServerRequest *request){
-    request->send(200);
-  }, onUpload);
-    
+  //server.on("/response", HTTP_POST, [](AsyncWebServerRequest *request){
+  server.on("/response", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/plain", onAnswer().c_str());
+  });
   // Start server
   server.begin();
 
@@ -86,13 +85,15 @@ void setup(){
 void loop(){
   if (digitalRead(BUTTON_PIN) == LOW) {
     buzzPressed = true;
-    waitForResponse = true;
     highPin(REDLIGHT_PIN);
     startTime = millis();
   }
 
   if (millis() - startTime >= redTimer) {
     lowPin(REDLIGHT_PIN);
+  }
+  if (millis() - startTime >= greenTimer) {
+    lowPin(GREENLIGHT_PIN);
   }
 }
 
